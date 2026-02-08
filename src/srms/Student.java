@@ -1,26 +1,21 @@
 package srms;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+
 public class Student {
 
-    // --------------------
-    // Fields
-    // --------------------
     private String id;
     private String name;
-    private double marks;
+    private Map<String, Double> subjectMarks;
 
-    // --------------------
-    // Constructor
-    // --------------------
-    public Student(String id, String name, double marks) {
+    public Student(String id, String name) {
         this.id = id;
         this.name = name;
-        this.marks = marks;
+        this.subjectMarks = new LinkedHashMap<>();
     }
 
-    // --------------------
-    // Getters and Setters
-    // --------------------
     public String getId() {
         return id;
     }
@@ -37,57 +32,82 @@ public class Student {
         this.name = name;
     }
 
-    public double getMarks() {
-        return marks;
+    public void addSubject(String subjectName, double marks) {
+        subjectMarks.put(subjectName.trim(), marks);
     }
 
-    public void setMarks(double marks) {
-        this.marks = marks;
+    public double getSubjectMarks(String subjectName) {
+        return subjectMarks.getOrDefault(subjectName, 0.0);
     }
 
-    // --------------------
-    // Computed Properties
-    // --------------------
-
-    // Returns letter grade based on marks
-    public String getLetterGrade() {
-        if (marks >= 85) return "HD";
-        if (marks >= 75) return "D";
-        if (marks >= 65) return "CR";
-        if (marks >= 50) return "P";
-        return "F";
+    public Map<String, Double> getAllSubjectMarks() {
+        return subjectMarks;
     }
 
-    // Returns GPA on a 4.0 scale
-    public double getGpa() {
-        switch (getLetterGrade()) {
-            case "HD": return 4.0;
-            case "D":  return 3.0;
-            case "CR": return 2.0;
-            case "P":  return 1.0;
-            default:   return 0.0;
+    public void setSubjectMarks(String subjectName, double marks) {
+        if (subjectMarks.containsKey(subjectName)) {
+            subjectMarks.put(subjectName, marks);
         }
     }
 
-    // Returns pass/fail status
-    public boolean isPass() {
-        return marks >= 50;
+    public Set<String> getSubjects() {
+        return subjectMarks.keySet();
     }
 
-    // --------------------
-    // Display Formatting
-    // --------------------
+    public int getSubjectCount() {
+        return subjectMarks.size();
+    }
+
+    public String getSubjectGrade(String subjectName) {
+        double marks = getSubjectMarks(subjectName);
+        return GradeUtil.getLetterGrade(marks);
+    }
+
+    public double getOverallAverage() {
+        if (subjectMarks.isEmpty()) return 0.0;
+        double sum = 0;
+        for (double marks : subjectMarks.values()) {
+            sum += marks;
+        }
+        return sum / subjectMarks.size();
+    }
+
+    public String getOverallGrade() {
+        return GradeUtil.getLetterGrade(getOverallAverage());
+    }
+
+    public boolean isPass() {
+        for (double marks : subjectMarks.values()) {
+            if (marks < 50) return false;
+        }
+        return true;
+    }
 
     @Override
     public String toString() {
-        return String.format(
-                "%-10s %-20s %6.2f   %-2s   %4.1f   %s",
-                id,
-                name,
-                marks,
-                getLetterGrade(),
-                getGpa(),
-                isPass() ? "PASS" : "FAIL"
-        );
+        return String.format("%-10s %-25s %6.2f   %-2s   %s",
+                id, name, getOverallAverage(), getOverallGrade(),
+                isPass() ? "PASS" : "FAIL");
+    }
+
+    public String toDetailedString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\n--- Student Details ---\n");
+        sb.append("ID: ").append(id).append("\n");
+        sb.append("Name: ").append(name).append("\n");
+        sb.append("\nSubjects:\n");
+
+        for (String subject : subjectMarks.keySet()) {
+            double marks = subjectMarks.get(subject);
+            String grade = getSubjectGrade(subject);
+            sb.append("  ").append(subject).append(": ").append(marks)
+                    .append(" (").append(grade).append(")\n");
+        }
+
+        sb.append("\nOverall Average: ").append(String.format("%.2f", getOverallAverage())).append("\n");
+        sb.append("Overall Grade: ").append(getOverallGrade()).append("\n");
+        sb.append("Status: ").append(isPass() ? "PASS" : "FAIL").append("\n");
+
+        return sb.toString();
     }
 }

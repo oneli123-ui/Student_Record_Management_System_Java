@@ -1,24 +1,25 @@
 package srms;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Scanner;
 
 public class Main {
 
-    private static final String DATA_FILE = "students.csv";
-
     public static void main(String[] args) {
-        // 1) Load existing data from file
-        List<Student> loadedStudents = FileStorage.load(DATA_FILE);
-        StudentManager manager = new StudentManager(loadedStudents);
+        System.out.println("Student Record Management System (SsRMS) Starting...");
+        System.out.println("Data stored in-memory. Changes will be lost when you exit.\n");
 
-        // 2) Menu loop
+        // Create student manager with empty list
+        StudentManager manager = new StudentManager();
+
+        // Menu loop
         Scanner sc = new Scanner(System.in);
         boolean running = true;
 
         while (running) {
             printMenu();
-            int choice = readInt(sc, "Choose an option (1-7): ");
+            int choice = readInt(sc, "Choose an option (1-6): ");
 
             switch (choice) {
                 case 1:
@@ -34,18 +35,14 @@ public class Main {
                     viewAllStudents(manager);
                     break;
                 case 5:
-                    sortSequentialFlow(sc, manager);
+                    searchByIdFlow(sc, manager);
                     break;
                 case 6:
-                    sortParallelFlow(sc, manager);
-                    break;
-                case 7:
-                    FileStorage.save(manager.getAll(), DATA_FILE);
-                    System.out.println("Saved to " + DATA_FILE + ". Exiting...");
+                    System.out.println("Exiting... Goodbye!");
                     running = false;
                     break;
                 default:
-                    System.out.println("Invalid choice. Please select 1–7.");
+                    System.out.println("Invalid choice. Please select 1–6.");
             }
 
             System.out.println(); // spacing between loops
@@ -66,26 +63,74 @@ public class Main {
         System.out.println("2) Edit student");
         System.out.println("3) Remove student");
         System.out.println("4) View all students");
-        System.out.println("5) Sort students (sequential)");
-        System.out.println("6) Sort students (parallel)");
-        System.out.println("7) Save & Exit");
+        System.out.println("5) Search by student ID");
+        System.out.println("6) Exit");
         System.out.println("--------------------------------------");
     }
 
     private static void addStudentFlow(Scanner sc, StudentManager manager) {
         System.out.println("---- Add Student ----");
 
-        String id = readNonEmpty(sc, "Enter student ID: ");
-        String name = readNonEmpty(sc, "Enter student name: ").replace(",", " ");
-        double marks = readMarks(sc, "Enter marks (0-100): ");
+        // Validate Student ID with detailed feedback
+        String id;
+        while (true) {
+            id = readNonEmpty(sc, "Enter student ID (format: S###, e.g., S001): ");
+            String idError = manager.getIdValidationError(id);
+            if (idError == null) {
+                break; // Valid ID
+            }
+            System.out.println("✗ " + idError);
+        }
 
-        Student s = new Student(id, name, marks);
+        // Validate Student Name with detailed feedback
+        String name;
+        while (true) {
+            name = readNonEmpty(sc, "Enter student name: ").replace(",", " ");
+            String nameError = manager.getNameValidationError(name);
+            if (nameError == null) {
+                break; // Valid name
+            }
+            System.out.println("✗ " + nameError);
+        }
+
+        // Create student
+        Student s = new Student(id, name);
+
+        // Add subjects dynamically
+        System.out.println("\nAdd subjects (enter subject name and marks):");
+        System.out.println("(Type 'done' when finished adding subjects)");
+
+        boolean addingSubjects = true;
+        while (addingSubjects) {
+            String subject = readNonEmpty(sc, "Enter subject name (or 'done' to finish): ");
+
+            if (subject.equalsIgnoreCase("done")) {
+                addingSubjects = false;
+            } else {
+                double marks = readMarks(sc, "  Enter marks for " + subject + " (0-100): ");
+                s.addSubject(subject, marks);
+                System.out.println("  ✓ Added: " + subject + " - " + marks);
+            }
+        }
+
+        // Validate at least one subject was added
+        if (s.getSubjectCount() == 0) {
+            System.out.println("\n✗ Student must have at least one subject. Cancelled.");
+            return;
+        }
+
         boolean added = manager.addStudent(s);
 
         if (added) {
-            System.out.println("Student added successfully.");
+            System.out.println("\n✓ Student added successfully!");
+            System.out.println("\n" + "=".repeat(80));
+            System.out.println("STUDENT SUMMARY");
+            System.out.println("=".repeat(80));
+            printHeader();
+            System.out.println(s);
+            System.out.println("=".repeat(80));
         } else {
-            System.out.println("Failed to add student. (Duplicate ID or invalid data)");
+            System.out.println("\n✗ Failed to add student. Validation failed.");
         }
     }
 
@@ -100,15 +145,47 @@ public class Main {
             return;
         }
 
-        System.out.println("Current record:");
-        printHeader();
-        System.out.println(existing);
+        System.out.println("\nCurrent record:");
+        System.out.println(existing.toDetailedString());
 
-        String newName = readNonEmpty(sc, "Enter new name: ").replace(",", " ");
-        double newMarks = readMarks(sc, "Enter new marks (0-100): ");
+        String newName = readNonEmpty(sc, "\nEnter new name: ").replace(",", " ");
+        existing.setName(newName);
 
-        boolean updated = manager.editStudent(id, newName, newMarks);
-        System.out.println(updated ? "Student updated successfully." : "Update failed.");
+        System.out.println("\nEdit subjects:");
+        System.out.println("Current subjects: " + String.join(", ", existing.getSubjects()));
+
+        boolean editingSubjects = true;
+        while (editingSubjects) {
+            System.out.println("\n1) Update existing subject marks");
+            System.out.println("2) Add new subject");
+            System.out.println("3) Done editing");
+
+            int choice = readInt(sc, "Choose option (1-3): ");
+
+            if (choice == 1) {
+                String subject = readNonEmpty(sc, "Enter subject name to update: ");
+                if (existing.getSubjects().contains(subject)) {
+                    double marks = readMarks(sc, "Enter new marks (0-100): ");
+                    existing.setSubjectMarks(subject, marks);
+                    System.out.println("✓ Updated: " + subject + " - " + marks);
+                } else {
+                    System.out.println("✗ Subject not found.");
+                }
+            } else if (choice == 2) {
+                String subject = readNonEmpty(sc, "Enter new subject name: ");
+                double marks = readMarks(sc, "Enter marks (0-100): ");
+                existing.addSubject(subject, marks);
+                System.out.println("✓ Added: " + subject + " - " + marks);
+            } else if (choice == 3) {
+                editingSubjects = false;
+            } else {
+                System.out.println("Invalid choice.");
+            }
+        }
+
+        System.out.println("\n✓ Student updated successfully.");
+        System.out.println("\nUpdated record:");
+        System.out.println(existing.toDetailedString());
     }
 
     private static void removeStudentFlow(Scanner sc, StudentManager manager) {
@@ -121,7 +198,7 @@ public class Main {
     }
 
     private static void viewAllStudents(StudentManager manager) {
-        System.out.println("---- All Students ----");
+        System.out.println("---- All Students (Sorted by Name) ----");
 
         List<Student> all = manager.getAll();
         if (all.isEmpty()) {
@@ -129,43 +206,33 @@ public class Main {
             return;
         }
 
+        // Sort students by name sequentially
+        all.sort(Comparator.comparing(s -> s.getName().toLowerCase()));
+
         printHeader();
         for (Student s : all) {
             System.out.println(s);
         }
+
+        System.out.println("\nTotal students: " + all.size());
     }
 
-    private static void sortSequentialFlow(Scanner sc, StudentManager manager) {
-        System.out.println("---- Sort (Sequential) ----");
-        System.out.println("1) By name (A-Z)");
-        System.out.println("2) By marks (high to low)");
 
-        int sortChoice = readInt(sc, "Choose sort option (1-2): ");
-        if (sortChoice == 1) {
-            manager.sortByNameSequential();
-            System.out.println("Sorted by name (sequential).");
-        } else if (sortChoice == 2) {
-            manager.sortByMarksSequential();
-            System.out.println("Sorted by marks (sequential).");
+    // --------------------
+    // Search Operations
+    // --------------------
+
+    private static void searchByIdFlow(Scanner sc, StudentManager manager) {
+        System.out.println("---- Search by Student ID ----");
+
+        String id = readNonEmpty(sc, "Enter student ID to search: ");
+        Student student = manager.findById(id);
+
+        if (student == null) {
+            System.out.println("✗ No student found with ID: " + id);
         } else {
-            System.out.println("Invalid sort option.");
-        }
-    }
-
-    private static void sortParallelFlow(Scanner sc, StudentManager manager) {
-        System.out.println("---- Sort (Parallel) ----");
-        System.out.println("1) By name (A-Z)");
-        System.out.println("2) By marks (high to low)");
-
-        int sortChoice = readInt(sc, "Choose sort option (1-2): ");
-        if (sortChoice == 1) {
-            manager.sortByNameParallel();
-            System.out.println("Sorted by name (parallel).");
-        } else if (sortChoice == 2) {
-            manager.sortByMarksParallel();
-            System.out.println("Sorted by marks (parallel).");
-        } else {
-            System.out.println("Invalid sort option.");
+            System.out.println("✓ Student found!\n");
+            System.out.println(student.toDetailedString());
         }
     }
 
@@ -201,14 +268,24 @@ public class Main {
             System.out.print(prompt);
             String input = sc.nextLine().trim();
 
+            // Check if input is empty
+            if (input.isEmpty()) {
+                System.out.println("✗ Input cannot be empty. Please enter a number between 0 and 100.");
+                continue;
+            }
+
             try {
                 double marks = Double.parseDouble(input);
-                if (marks >= 0 && marks <= 100) {
-                    return marks;
+
+                // Validate range
+                if (marks < 0 || marks > 100) {
+                    System.out.println("✗ Marks must be between 0 and 100. You entered: " + marks);
+                    continue;
                 }
-                System.out.println("Marks must be between 0 and 100.");
+
+                return marks;
             } catch (NumberFormatException e) {
-                System.out.println("Please enter a valid numeric value for marks.");
+                System.out.println("✗ Invalid input: '" + input + "' is not a valid number. Please enter a value between 0 and 100.");
             }
         }
     }
@@ -218,8 +295,8 @@ public class Main {
     // --------------------
 
     private static void printHeader() {
-        System.out.println(String.format("%-10s %-20s %6s   %-2s   %4s   %s",
-                "ID", "Name", "Marks", "Gr", "GPA", "Status"));
-        System.out.println("----------------------------------------------------------");
+        System.out.printf("%-10s %-25s %6s   %-2s   %s%n",
+                "ID", "Name", "Avg", "Gr", "Status");
+        System.out.println("-----------------------------------------------------------------------");
     }
 }

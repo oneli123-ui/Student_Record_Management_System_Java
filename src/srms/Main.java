@@ -6,7 +6,7 @@ import java.util.Scanner;
 
 public class Main {
 
-    public static void main(String[] args) {
+    static void main(String[] args) {
         System.out.println("Student Record Management System Starting...");
         System.out.println("Data stored in-memory. Changes will be lost when you exit.\n");
 

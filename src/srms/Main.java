@@ -7,13 +7,10 @@ import java.util.Scanner;
 public class Main {
 
     public static void main(String[] args) {
-        System.out.println("Student Record Management System (SsRMS) Starting...");
+        System.out.println("Student Record Management System Starting...");
         System.out.println("Data stored in-memory. Changes will be lost when you exit.\n");
 
-        // Create student manager with empty list
         StudentManager manager = new StudentManager();
-
-        // Menu loop
         Scanner sc = new Scanner(System.in);
         boolean running = true;
 
@@ -22,38 +19,21 @@ public class Main {
             int choice = readInt(sc, "Choose an option (1-6): ");
 
             switch (choice) {
-                case 1:
-                    addStudentFlow(sc, manager);
-                    break;
-                case 2:
-                    editStudentFlow(sc, manager);
-                    break;
-                case 3:
-                    removeStudentFlow(sc, manager);
-                    break;
-                case 4:
-                    viewAllStudents(manager);
-                    break;
-                case 5:
-                    searchByIdFlow(sc, manager);
-                    break;
-                case 6:
-                    System.out.println("Exiting... Goodbye!");
+                case 1 -> addStudentFlow(sc, manager);
+                case 2 -> editStudentFlow(sc, manager);
+                case 3 -> removeStudentFlow(sc, manager);
+                case 4 -> viewAllStudents(manager);
+                case 5 -> searchByIdFlow(sc, manager);
+                case 6 -> {
+                    System.out.println("Goodbye!");
                     running = false;
-                    break;
-                default:
-                    System.out.println("Invalid choice. Please select 1–6.");
+                }
+                default -> System.out.println("Invalid choice. Please select 1–6.");
             }
-
-            System.out.println(); // spacing between loops
+            System.out.println();
         }
-
         sc.close();
     }
-
-    // --------------------
-    // Menu + UI Helpers
-    // --------------------
 
     private static void printMenu() {
         System.out.println("======================================");
@@ -71,39 +51,29 @@ public class Main {
     private static void addStudentFlow(Scanner sc, StudentManager manager) {
         System.out.println("---- Add Student ----");
 
-        // Validate Student ID with detailed feedback
         String id;
         while (true) {
             id = readNonEmpty(sc, "Enter student ID (format: S###, e.g., S001): ");
             String idError = manager.getIdValidationError(id);
-            if (idError == null) {
-                break; // Valid ID
-            }
+            if (idError == null) break;
             System.out.println("✗ " + idError);
         }
 
-        // Validate Student Name with detailed feedback
         String name;
         while (true) {
             name = readNonEmpty(sc, "Enter student name: ").replace(",", " ");
             String nameError = manager.getNameValidationError(name);
-            if (nameError == null) {
-                break; // Valid name
-            }
+            if (nameError == null) break;
             System.out.println("✗ " + nameError);
         }
 
-        // Create student
         Student s = new Student(id, name);
-
-        // Add subjects dynamically
         System.out.println("\nAdd subjects (enter subject name and marks):");
         System.out.println("(Type 'done' when finished adding subjects)");
 
         boolean addingSubjects = true;
         while (addingSubjects) {
             String subject = readNonEmpty(sc, "Enter subject name (or 'done' to finish): ");
-
             if (subject.equalsIgnoreCase("done")) {
                 addingSubjects = false;
             } else {
@@ -113,24 +83,21 @@ public class Main {
             }
         }
 
-        // Validate at least one subject was added
         if (s.getSubjectCount() == 0) {
             System.out.println("\n✗ Student must have at least one subject. Cancelled.");
             return;
         }
 
-        boolean added = manager.addStudent(s);
-
-        if (added) {
+        if (manager.addStudent(s)) {
             System.out.println("\n✓ Student added successfully!");
-            System.out.println("\n" + "=".repeat(80));
+            System.out.println("=".repeat(80));
             System.out.println("STUDENT SUMMARY");
             System.out.println("=".repeat(80));
             printHeader();
             System.out.println(s);
             System.out.println("=".repeat(80));
         } else {
-            System.out.println("\n✗ Failed to add student. Validation failed.");
+            System.out.println("\n✗ Failed to add student.");
         }
     }
 
@@ -190,10 +157,8 @@ public class Main {
 
     private static void removeStudentFlow(Scanner sc, StudentManager manager) {
         System.out.println("---- Remove Student ----");
-
         String id = readNonEmpty(sc, "Enter student ID to remove: ");
         boolean removed = manager.removeStudent(id);
-
         System.out.println(removed ? "Student removed successfully." : "No student found with that ID.");
     }
 
@@ -206,25 +171,16 @@ public class Main {
             return;
         }
 
-        // Sort students by name sequentially
         all.sort(Comparator.comparing(s -> s.getName().toLowerCase()));
-
         printHeader();
         for (Student s : all) {
             System.out.println(s);
         }
-
         System.out.println("\nTotal students: " + all.size());
     }
 
-
-    // --------------------
-    // Search Operations
-    // --------------------
-
     private static void searchByIdFlow(Scanner sc, StudentManager manager) {
         System.out.println("---- Search by Student ID ----");
-
         String id = readNonEmpty(sc, "Enter student ID to search: ");
         Student student = manager.findById(id);
 
@@ -236,16 +192,11 @@ public class Main {
         }
     }
 
-    // --------------------
-    // Input Validation
-    // --------------------
-
     private static int readInt(Scanner sc, String prompt) {
         while (true) {
             System.out.print(prompt);
-            String input = sc.nextLine().trim();
             try {
-                return Integer.parseInt(input);
+                return Integer.parseInt(sc.nextLine().trim());
             } catch (NumberFormatException e) {
                 System.out.println("Please enter a valid number.");
             }
@@ -268,31 +219,17 @@ public class Main {
             System.out.print(prompt);
             String input = sc.nextLine().trim();
 
-            // Check if input is empty
-            if (input.isEmpty()) {
-                System.out.println("✗ Input cannot be empty. Please enter a number between 0 and 100.");
-                continue;
-            }
-
             try {
                 double marks = Double.parseDouble(input);
-
-                // Validate range
-                if (marks < 0 || marks > 100) {
-                    System.out.println("✗ Marks must be between 0 and 100. You entered: " + marks);
-                    continue;
+                if (marks >= 0 && marks <= 100) {
+                    return marks;
                 }
-
-                return marks;
+                System.out.println("✗ Marks must be between 0 and 100. You entered: " + marks);
             } catch (NumberFormatException e) {
-                System.out.println("✗ Invalid input: '" + input + "' is not a valid number. Please enter a value between 0 and 100.");
+                System.out.println("✗ Invalid input. Please enter a number between 0 and 100.");
             }
         }
     }
-
-    // --------------------
-    // Display Formatting
-    // --------------------
 
     private static void printHeader() {
         System.out.printf("%-10s %-25s %6s   %-2s   %s%n",
@@ -300,3 +237,5 @@ public class Main {
         System.out.println("-----------------------------------------------------------------------");
     }
 }
+
+

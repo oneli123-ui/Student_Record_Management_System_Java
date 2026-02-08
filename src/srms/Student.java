@@ -77,10 +77,7 @@ public class Student {
     }
 
     public boolean isPass() {
-        for (double marks : subjectMarks.values()) {
-            if (marks < 50) return false;
-        }
-        return true;
+        return getOverallAverage() >= 50;
     }
 
     @Override

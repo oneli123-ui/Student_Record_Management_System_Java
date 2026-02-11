@@ -1,35 +1,28 @@
+// Author : Oneli Liyanage(10695938)
+// Date : 10/2/2026
+// Assignment : ASSIGNMENT 2 - CSP3341 Programming Languages and Paradigms
+// File : GradeUtil.java
+// Functionality : Provides utility methods for converting marks to letter grades, calculating GPA, and determining pass/fail status.
+
 package srms;
 
-/**
- * Utility class that provides grading-related logic.
- * This class is stateless and contains only static methods.
- */
+// GradeUtil class - Utility class providing grading logic (static methods only, cannot be instantiated)
 public class GradeUtil {
 
-    // Prevent instantiation (utility class)
+    // Private constructor - Prevents instantiation of utility class
     private GradeUtil() {
     }
 
-    /**
-     * Determines the letter grade based on marks.
-     *
-     * @param marks Student marks (0–100)
-     * @return Letter grade (HD, D, CR, P, F)
-     */
+    // Converts numeric marks (0-100) to letter grades (HD, D, CR, P, F)
     public static String getLetterGrade(double marks) {
-        if (marks >= 85) return "HD";
-        if (marks >= 75) return "D";
-        if (marks >= 65) return "CR";
+        if (marks >= 80) return "HD";
+        if (marks >= 70) return "D";
+        if (marks >= 60) return "CR";
         if (marks >= 50) return "P";
         return "F";
     }
 
-    /**
-     * Converts a letter grade to GPA on a 4.0 scale.
-     *
-     * @param letterGrade Letter grade (HD, D, CR, P, F)
-     * @return GPA value
-     */
+    // Converts letter grades to GPA on a 4.0 scale (HD=4.0, D=3.0, CR=2.0, P=1.0, F=0.0)
     public static double getGpa(String letterGrade) {
         switch (letterGrade) {
             case "HD":
@@ -45,22 +38,12 @@ public class GradeUtil {
         }
     }
 
-    /**
-     * Determines whether a student has passed based on letter grade.
-     *
-     * @param letterGrade Letter grade
-     * @return true if pass, false otherwise
-     */
+    // Determines if a student passes based on letter grade (anything except F is a pass)
     public static boolean isPass(String letterGrade) {
         return !letterGrade.equals("F");
     }
 
-    /**
-     * Alternative pass/fail check directly from marks.
-     *
-     * @param marks Student marks
-     * @return true if marks >= 50
-     */
+    // Determines if a student passes based on numeric marks (50 or above is a pass)
     public static boolean isPass(double marks) {
         return marks >= 50;
     }
